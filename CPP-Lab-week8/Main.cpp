@@ -218,9 +218,9 @@ int main(int argc, char *argv[])
 
   // TetrisState state;
   // Tetris::init(setOfBlockArrays, MAX_BLK_TYPES, MAX_BLK_DEGREES);
-  // Tetris *board = new Tetris(10, 10);
-  // key = (char)('0' + rand() % board->get_numTypes());
-  // board->accept(key);
+  Tetris *board = new Tetris(10, 10);
+  key = (char)('0' + rand() % board->get_num_types());
+  board->accept(key);
   // drawScreen(board->get_oScreen(), board->get_wallDepth());
   // cout << endl;
 
@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
   //   cout << endl;
   //   if (state == TetrisState::NewBlock)
   //   {
-  //     key = (char)('0' + rand() % board->get_numTypes());
+  //     key = (char)('0' + rand() % board->get_num_types());
   //     state = board->accept(key);
   //     drawScreen(board->get_oScreen(), board->get_wallDepth());
   //     cout << endl;
