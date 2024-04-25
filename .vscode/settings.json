@@ -26,6 +26,8 @@
     "stdexcept": "cpp",
     "iosfwd": "cpp",
     "iostream": "cpp",
-    "new": "cpp"
+    "new": "cpp",
+    "*.orig": "c",
+    "matrix.h": "c"
   },
 }

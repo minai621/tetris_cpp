@@ -3,7 +3,8 @@ CC=g++
 CFLAGS=-g -I. -fpermissive
 LDFLAGS_TET=
 DEPS_TET=CTetris.h Tetris.h Matrix.h
-OBJS_TET=Main.o CTetris.o Tetris.o Matrix.o ttymodes.o
+# OBJS_TET=Main.o CTetris.o Tetris.o Matrix.o ttymodes.o
+OBJS_TET=Main.o Tetris.o Matrix.o ttymodes.o
 DEBUG=0
 
 all:: Main.exe

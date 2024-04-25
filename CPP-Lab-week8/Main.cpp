@@ -216,32 +216,35 @@ int main(int argc, char *argv[])
   // registerAlarm(); // register one-second timer
   srand((unsigned int)time(NULL)); // init the random number generator
 
-  TetrisState state;
-  Tetris::init(setOfBlockArrays, MAX_BLK_TYPES, MAX_BLK_DEGREES);
-  Tetris *board = new Tetris(10, 10);
-  key = (char)('0' + rand() % board->get_numTypes());
-  board->accept(key);
-  drawScreen(board->get_oScreen(), board->get_wallDepth());
-  cout << endl;
+  // TetrisState state;
+  // Tetris::init(setOfBlockArrays, MAX_BLK_TYPES, MAX_BLK_DEGREES);
+  // Tetris *board = new Tetris(10, 10);
+  // key = (char)('0' + rand() % board->get_numTypes());
+  // board->accept(key);
+  // drawScreen(board->get_oScreen(), board->get_wallDepth());
+  // cout << endl;
 
-  while ((key = getch()) != 'q')
-  {
-    state = board->accept(key);
-    drawScreen(board->get_oScreen(), board->get_wallDepth());
-    cout << endl;
-    if (state == TetrisState::NewBlock)
-    {
-      key = (char)('0' + rand() % board->get_numTypes());
-      state = board->accept(key);
-      drawScreen(board->get_oScreen(), board->get_wallDepth());
-      cout << endl;
-      if (state == TetrisState::Finished)
-        break;
-    }
-  }
+  // // 사용자가 키를 입력을 해야지 getch가 return을 한다.
+  // // 만일, blocking 상태에서 사용자가 입력을 안하면, 프로그램 동작이 멈추게 됨.
+  // // getch 함수를 바꿔서 1초 이상 사용자가 입력하지 않아도 return하게 함.
+  // while ((key = getch()) != 'q')
+  // {
+  //   state = board->accept(key);
+  //   drawScreen(board->get_oScreen(), board->get_wallDepth());
+  //   cout << endl;
+  //   if (state == TetrisState::NewBlock)
+  //   {
+  //     key = (char)('0' + rand() % board->get_numTypes());
+  //     state = board->accept(key);
+  //     drawScreen(board->get_oScreen(), board->get_wallDepth());
+  //     cout << endl;
+  //     if (state == TetrisState::Finished)
+  //       break;
+  //   }
+  // }
 
-  delete board;
-  Tetris::deinit();
+  // delete board;
+  // Tetris::deinit();
   cout << "(nAlloc, nFree) = (" << Matrix::get_nAlloc() << ',' << Matrix::get_nFree() << ")" << endl;
   cout << "Program terminated!" << endl;
   return 0;
