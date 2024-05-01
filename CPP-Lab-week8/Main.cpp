@@ -170,6 +170,7 @@ int *setOfBlockArrays[] = {
     T6D3,
 };
 
+// 벽의 두께에 따라서, 어떻게 출력될지 달라진다.
 void drawScreen(Matrix *screen, int wall_depth)
 {
   int dy = screen->get_dy();
@@ -221,8 +222,8 @@ int main(int argc, char *argv[])
   Tetris *board = new Tetris(10, 10);
   key = (char)('0' + rand() % board->get_num_types());
   board->accept(key);
-  // drawScreen(board->get_oScreen(), board->get_wallDepth());
-  // cout << endl;
+  drawScreen(board->get_output_screen(), board->get_wall_depth());
+  cout << endl;
 
   // // 사용자가 키를 입력을 해야지 getch가 return을 한다.
   // // 만일, blocking 상태에서 사용자가 입력을 안하면, 프로그램 동작이 멈추게 됨.
