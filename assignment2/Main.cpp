@@ -182,6 +182,7 @@ void drawScreen(Matrix *screen, int wall_depth)
   {
     for (int x = dw - 1; x < dx - dw + 1; x++)
     {
+      // cout << array[y][x] << " ";
       if (array[y][x] == 0)
         cout << "□ ";
       else if (array[y][x] == 1)
@@ -201,7 +202,7 @@ void drawScreen(Matrix *screen, int wall_depth)
       else if (array[y][x] == 70)
         cout << "♥ ";
       else
-        cout << "XX ";
+        cout << "X ";
     }
     cout << endl;
   }
@@ -220,23 +221,31 @@ int main(int argc, char *argv[])
   TetrisState state;
   CTetris::init(setOfColorBlockArrays, MAX_BLK_TYPES, MAX_BLK_DEGREES);
   CTetris *board = new CTetris(10, 10);
+
   key = (char)('0' + rand() % board->get_numTypes());
   board->accept(key);
-  // drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
+  // cout << "main1 Current state: " << stateToString(state) << endl;
+  // drawScreen(board->get_oScreen(), board->get_wallDepth());
+  // cout << endl;
   drawScreen(board->get_oCScreen(), board->get_wallDepth());
   cout << endl;
 
   while ((key = getch()) != 'q')
   {
     state = board->accept(key);
-    // drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
+    // drawScreen(board->get_oScreen(), board->get_wallDepth());
+    // cout << endl;
     drawScreen(board->get_oCScreen(), board->get_wallDepth());
+    // cout << "Current state: " << stateToString(state) << endl;
     cout << endl;
+
     if (state == TetrisState::NewBlock)
     {
       key = (char)('0' + rand() % board->get_numTypes());
+      // cout << "key is " << key << endl;
       state = board->accept(key);
-      // drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
+      // drawScreen(board->get_oScreen(), board->get_wallDepth());
+      // cout << endl;
       drawScreen(board->get_oCScreen(), board->get_wallDepth());
       cout << endl;
       if (state == TetrisState::Finished)

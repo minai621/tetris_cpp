@@ -28,6 +28,10 @@
     "iostream": "cpp",
     "new": "cpp",
     "*.orig": "c",
-    "matrix.h": "c"
+    "matrix.h": "c",
+    "istream": "cpp",
+    "locale": "cpp",
+    "tuple": "cpp",
+    "variant": "cpp"
   },
 }

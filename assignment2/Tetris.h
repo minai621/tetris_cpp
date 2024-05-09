@@ -5,17 +5,20 @@
 
 using namespace std;
 
-enum class TetrisState {
+enum class TetrisState
+{
     NewBlock,
     Running,
     Finished,
 };
 
+extern string stateToString(TetrisState state);
 extern Matrix *deleteFullLines(Matrix *screen, Matrix *blk, int top, int dw);
-//extern int *allocArrayScreen(int dy, int dx, int dw);
-//extern void deallocArrayScreen(int *array);
+// extern int *allocArrayScreen(int dy, int dx, int dw);
+// extern void deallocArrayScreen(int *array);
 
-class Tetris {
+class Tetris
+{
 protected:
     // static members
     static Matrix ***setOfBlockObjects;
@@ -28,7 +31,7 @@ protected:
     int cols; // columns of screen = dx + 2*wallDepth
     int type;
     int degree;
-    int top; 
+    int top;
     int left;
 
     TetrisState state;
@@ -43,9 +46,9 @@ public:
     ~Tetris();
 
     // accessors
-    static int get_wallDepth(void)  {  return wallDepth; }
-    static int get_numTypes(void)  {  return numTypes; }    
-    Matrix *get_oScreen(void) const {  return oScreen; }
+    static int get_wallDepth(void) { return wallDepth; }
+    static int get_numTypes(void) { return numTypes; }
+    Matrix *get_oScreen(void) const { return oScreen; }
 
     // mutators
     TetrisState accept(char key);
