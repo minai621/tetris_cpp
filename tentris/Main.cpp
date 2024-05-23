@@ -350,50 +350,90 @@ public:
   }
 };
 
-class CollisionIgnoringActionHandler : public ActionHandler {
+class OnAction : public ActionHandler
+{
 private:
-    ActionHandler *oppositeAction;
+  ActionHandler *nextAction;
 
 public:
-    CollisionIgnoringActionHandler(ActionHandler *oppositeAction) {
-        this->oppositeAction = oppositeAction;
-    }
-
-    ~CollisionIgnoringActionHandler() {
-        delete oppositeAction;
-    }
-
-    void run(Tetris *t, char key) override {
-        // 현재 상태를 저장
-        int originalTop = t->top;
-        int originalLeft = t->left;
-        int originalDegree = t->degree;
-
-        // 이동 시도
-        wrappedHandler->run(t, key);
-
-        // 충돌 체크
-        Matrix *tempBlk = t->overlap_currBlk();
-        bool hasCollision = anyConflict(tempBlk);
-        delete tempBlk;
-
-        // 벽과의 충돌 확인
-        bool outOfBounds = t->left < 0 || t->left + t->currBlk->get_dx() > t->iScreen->get_dx() ||
-                           t->top < 0 || t->top + t->currBlk->get_dy() > t->iScreen->get_dy();
-
-        if (hasCollision) {
-            if (outOfBounds) {
-                // 벽과의 충돌 시 반대 동작 실행
-                oppositeAction->run(t, key);
-            }
-            // 블록과의 충돌은 무시하므로 아무 동작도 하지 않음
-        } else {
-            // 충돌이 없을 경우 oScreen 업데이트
-            t->update_oScreen(t->iScreen, t->top, t->left);
-        }
-    }
+  OnAction(ActionHandler *nextAction)
+  {
+    this->nextAction = nextAction;
+  }
+  ~OnAction()
+  {
+    delete nextAction;
+  }
+  void run(Tetris *t, char key)
+  {
+    Matrix *temp = new Matrix(t->iScreen);
+    Matrix *tempBlk = t->overlap_currBlk();
+    temp->paste(tempBlk, t->top, t->left);
+    delete tempBlk;
+    int dw = t->get_wallDepth();
+    int ws_dy = temp->get_dy() - 2 * dw;
+    int ws_dx = temp->get_dx() - 2 * dw;
+    Matrix *zero = new Matrix(ws_dy, ws_dx);
+    temp->paste(zero, dw, dw);
+    if (anyConflict(temp))
+      nextAction->run(t, key);
+    delete zero;
+    delete temp;
+  }
 };
 
+class CollisionIgnoringActionHandler : public ActionHandler
+{
+private:
+  ActionHandler *oppositeAction;
+
+public:
+  CollisionIgnoringActionHandler(ActionHandler *oppositeAction)
+  {
+    this->oppositeAction = oppositeAction;
+  }
+
+  ~CollisionIgnoringActionHandler()
+  {
+    delete oppositeAction;
+  }
+
+  void run(Tetris *t, char key) override
+  {
+    // 현재 상태를 저장
+    int originalTop = t->top;
+    int originalLeft = t->left;
+
+    // 이동 시도
+    oppositeAction->run(t, key);
+
+    // 충돌 체크
+    Matrix *tempBlk = t->overlap_currBlk();
+    bool hasCollision = anyConflict(tempBlk);
+    delete tempBlk;
+
+    // 벽과의 충돌 확인
+    bool outOfBounds = t->left < 0 || t->left + t->currBlk->get_dx() > t->iScreen->get_dx() ||
+                       t->top < 0 || t->top + t->currBlk->get_dy() > t->iScreen->get_dy();
+
+    if (hasCollision)
+    {
+      if (outOfBounds)
+      {
+        // 벽과의 충돌 시 반대 동작 실행
+        t->top = originalTop;
+        t->left = originalLeft;
+        oppositeAction->run(t, key);
+      }
+      // 블록과의 충돌은 무시하므로 아무 동작도 하지 않음
+    }
+    else
+    {
+      // 충돌이 없을 경우 oScreen 업데이트
+      t->update_oScreen(t->iScreen, t->top, t->left);
+    }
+  }
+};
 
 int main(int argc, char *argv[])
 {
@@ -408,14 +448,13 @@ int main(int argc, char *argv[])
   /// Plug-in architecture for generalized Tetris class
   /////////////////////////////////////////////////////////////////////////
 
-  Tetris::setOperation('a', TetrisState::Running, new OnMyLeft(), TetrisState::Running, new CollisionIgnoringActionHandler(new OnMyRight()), TetrisState::Running);
-  Tetris::setOperation('d', TetrisState::Running, new OnMyRight(), TetrisState::Running, new CollisionIgnoringActionHandler(new OnMyLeft()), TetrisState::Running);
-  Tetris::setOperation('s', TetrisState::Running, new OnMyDown(), TetrisState::Running, new CollisionIgnoringActionHandler(new OnMyUp()), TetrisState::Running);
-  Tetris::setOperation('e', TetrisState::Running, new OnMyUp(), TetrisState::Running, new CollisionIgnoringActionHandler(new OnMyDown()), TetrisState::Running);
-  Tetris::setOperation('w', TetrisState::Running, new OnMyClockWise(), TetrisState::Running, new CollisionIgnoringActionHandler(new OnMyClockWise()), TetrisState::Running);
+  Tetris::setOperation('a', TetrisState::Running, new OnMyLeft(), TetrisState::Running, new OnAction(new OnMyRight()), TetrisState::Running);
+  Tetris::setOperation('d', TetrisState::Running, new OnMyRight(), TetrisState::Running, new OnAction(new OnMyLeft()), TetrisState::Running);
+  Tetris::setOperation('s', TetrisState::Running, new OnMyDown(), TetrisState::Running, new OnAction(new OnMyUp()), TetrisState::Running);
+  Tetris::setOperation('e', TetrisState::Running, new OnMyUp(), TetrisState::Running, new OnAction(new OnMyDown()), TetrisState::Running);
+  Tetris::setOperation('w', TetrisState::Running, new OnMyClockWise(), TetrisState::Running, new OnAction(new OnMyClockWise()), TetrisState::Running);
   Tetris::setOperation(' ', TetrisState::Running, new OnMyStop(), TetrisState::NewBlock, new OnMyStop(), TetrisState::Running);
 
-  
   // 새로운 블록 생성 시 myDeleteFullLines 호출
   Tetris::setOperation('0', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
   Tetris::setOperation('1', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
