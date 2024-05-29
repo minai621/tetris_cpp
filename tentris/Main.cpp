@@ -219,68 +219,68 @@ void drawScreen(Matrix *screen, int wall_depth)
 /**************************************************************/
 
 // my code
+
 Matrix *myDeleteFullLines(Matrix *screen, Matrix *blk, int top, int dw)
 {
-  Matrix *line, *bline, *zero, *temp;
-  int cy, y;
-  int nDeleted, nScanned;
   int ws_dy = screen->get_dy() - 2 * dw;
   int ws_dx = screen->get_dx() - 2 * dw;
+  int nScanned, nDeleted;
+  int cy, y, x;
 
+  // 가로 라인 삭제
   if (top + blk->get_dy() > ws_dy + dw)
     nScanned = ws_dy + dw - top;
   else
     nScanned = blk->get_dy();
 
-  zero = new Matrix(1, ws_dx);
+  Matrix *zeroLine = new Matrix(1, ws_dx);
   for (y = nScanned - 1, nDeleted = 0; y >= 0; y--)
   {
     cy = top + y + nDeleted;
-    line = screen->clip(cy, dw, cy + 1, dw + ws_dx);
-    bline = line->int2bool(); // binary version of line
+    Matrix *line = screen->clip(cy, dw, cy + 1, dw + ws_dx);
+    Matrix *bline = line->int2bool();
     delete line;
     if (bline->sum() == ws_dx)
     {
-      temp = screen->clip(dw, dw, cy, dw + ws_dx);
+      Matrix *temp = screen->clip(dw, dw, cy, dw + ws_dx);
       screen->paste(temp, dw + 1, dw);
-      screen->paste(zero, dw, dw);
+      screen->paste(zeroLine, dw, dw);
       nDeleted++;
       delete temp;
     }
     delete bline;
   }
-  delete zero;
+  delete zeroLine;
 
-  // 세로 삭제
-  zero = new Matrix(ws_dy, 1);
-  for (int x = 0; x < ws_dx; x++)
+  // 세로 라인 삭제
+  Matrix *zeroColumn = new Matrix(ws_dy, 1);
+  for (x = 0; x < ws_dx; x++)
   {
-    line = screen->clip(dw, dw + x, dw + ws_dy, dw + x + 1);
-    bline = line->int2bool(); // binary version of line
+    Matrix *line = screen->clip(dw, dw + x, dw + ws_dy, dw + x + 1);
+    Matrix *bline = line->int2bool();
     delete line;
     if (bline->sum() == ws_dy)
     {
-      temp = screen->clip(dw, dw, dw + ws_dy, dw + x);
+      Matrix *temp = screen->clip(dw, dw, dw + ws_dy, dw + x);
       screen->paste(temp, dw, dw + x + 1);
-      screen->paste(zero, dw, dw + x);
+      screen->paste(zeroColumn, dw, dw + x);
       delete temp;
     }
     delete bline;
   }
-  delete zero;
+  delete zeroColumn;
 
   return screen;
 }
 
-class OnMyNewBlock : public ActionHandler
+class CustomOnNewBlock : public ActionHandler
 {
 public:
   void run(Tetris *t, char key)
   {
-    if (t->currBlk != NULL) // why test currBlk != NULL?
+    if (t->currBlk != NULL)
       t->oScreen = myDeleteFullLines(t->oScreen, t->currBlk, t->top, t->wallDepth);
     t->iScreen->paste(t->oScreen, 0, 0);
-    // select a new block
     t->type = key - '0';
     t->degree = 0;
     t->top = t->wallDepth;
@@ -290,7 +290,7 @@ public:
   }
 };
 
-class OnMyStop : public ActionHandler
+class CustomStop : public ActionHandler
 {
 public:
   void run(Tetris *t, char key)
@@ -304,7 +304,7 @@ public:
   }
 };
 
-class OnMyLeft : public ActionHandler
+class CustomLeft : public ActionHandler
 {
 public:
   void run(Tetris *t, char key) override
@@ -313,7 +313,7 @@ public:
   }
 };
 
-class OnMyRight : public ActionHandler
+class CustomRight : public ActionHandler
 {
 public:
   void run(Tetris *t, char key) override
@@ -322,7 +322,7 @@ public:
   }
 };
 
-class OnMyDown : public ActionHandler
+class CustomDown : public ActionHandler
 {
 public:
   void run(Tetris *t, char key) override
@@ -331,7 +331,7 @@ public:
   }
 };
 
-class OnMyUp : public ActionHandler
+class CustomUp : public ActionHandler
 {
 public:
   void run(Tetris *t, char key) override
@@ -340,7 +340,7 @@ public:
   }
 };
 
-class OnMyClockWise : public ActionHandler
+class CustomClockWise : public ActionHandler
 {
 public:
   void run(Tetris *t, char key) override
@@ -350,88 +350,51 @@ public:
   }
 };
 
-class OnAction : public ActionHandler
+class CollisionIgnoringActionHandler : public ActionHandler
 {
 private:
   ActionHandler *nextAction;
 
-public:
-  OnAction(ActionHandler *nextAction)
+  Matrix *createTempScreen(Tetris *t) const
   {
-    this->nextAction = nextAction;
-  }
-  ~OnAction()
-  {
-    delete nextAction;
-  }
-  void run(Tetris *t, char key)
-  {
-    Matrix *temp = new Matrix(t->iScreen);
+    Matrix *tempScreen = new Matrix(t->iScreen);
     Matrix *tempBlk = t->overlap_currBlk();
-    temp->paste(tempBlk, t->top, t->left);
+    tempScreen->paste(tempBlk, t->top, t->left);
     delete tempBlk;
-    int dw = t->get_wallDepth();
-    int ws_dy = temp->get_dy() - 2 * dw;
-    int ws_dx = temp->get_dx() - 2 * dw;
-    Matrix *zero = new Matrix(ws_dy, ws_dx);
-    temp->paste(zero, dw, dw);
-    if (anyConflict(temp))
-      nextAction->run(t, key);
-    delete zero;
-    delete temp;
+    return tempScreen;
   }
-};
 
-class CollisionIgnoringActionHandler : public ActionHandler
-{
-private:
-  ActionHandler *oppositeAction;
+  void clearWalls(Matrix *screen, int wallDepth) const
+  {
+    int ws_dy = screen->get_dy() - 2 * wallDepth;
+    int ws_dx = screen->get_dx() - 2 * wallDepth;
+    Matrix *wall = new Matrix(ws_dy, ws_dx);
+    screen->paste(wall, wallDepth, wallDepth);
+    delete wall;
+  }
 
 public:
-  CollisionIgnoringActionHandler(ActionHandler *oppositeAction)
-  {
-    this->oppositeAction = oppositeAction;
-  }
+  CollisionIgnoringActionHandler(ActionHandler *nextAction)
+      : nextAction(nextAction) {}
 
   ~CollisionIgnoringActionHandler()
   {
-    delete oppositeAction;
+    delete nextAction;
   }
 
   void run(Tetris *t, char key) override
   {
-    // 현재 상태를 저장
-    int originalTop = t->top;
-    int originalLeft = t->left;
+    Matrix *tempScreen = createTempScreen(t);
 
-    // 이동 시도
-    oppositeAction->run(t, key);
+    int wallDepth = t->get_wallDepth();
+    clearWalls(tempScreen, wallDepth);
 
-    // 충돌 체크
-    Matrix *tempBlk = t->overlap_currBlk();
-    bool hasCollision = anyConflict(tempBlk);
-    delete tempBlk;
-
-    // 벽과의 충돌 확인
-    bool outOfBounds = t->left < 0 || t->left + t->currBlk->get_dx() > t->iScreen->get_dx() ||
-                       t->top < 0 || t->top + t->currBlk->get_dy() > t->iScreen->get_dy();
-
-    if (hasCollision)
+    if (anyConflict(tempScreen))
     {
-      if (outOfBounds)
-      {
-        // 벽과의 충돌 시 반대 동작 실행
-        t->top = originalTop;
-        t->left = originalLeft;
-        oppositeAction->run(t, key);
-      }
-      // 블록과의 충돌은 무시하므로 아무 동작도 하지 않음
+      nextAction->run(t, key);
     }
-    else
-    {
-      // 충돌이 없을 경우 oScreen 업데이트
-      t->update_oScreen(t->iScreen, t->top, t->left);
-    }
+
+    delete tempScreen;
   }
 };
 
@@ -448,21 +411,24 @@ int main(int argc, char *argv[])
   /// Plug-in architecture for generalized Tetris class
   /////////////////////////////////////////////////////////////////////////
 
-  Tetris::setOperation('a', TetrisState::Running, new OnMyLeft(), TetrisState::Running, new OnAction(new OnMyRight()), TetrisState::Running);
-  Tetris::setOperation('d', TetrisState::Running, new OnMyRight(), TetrisState::Running, new OnAction(new OnMyLeft()), TetrisState::Running);
-  Tetris::setOperation('s', TetrisState::Running, new OnMyDown(), TetrisState::Running, new OnAction(new OnMyUp()), TetrisState::Running);
-  Tetris::setOperation('e', TetrisState::Running, new OnMyUp(), TetrisState::Running, new OnAction(new OnMyDown()), TetrisState::Running);
-  Tetris::setOperation('w', TetrisState::Running, new OnMyClockWise(), TetrisState::Running, new OnAction(new OnMyClockWise()), TetrisState::Running);
-  Tetris::setOperation(' ', TetrisState::Running, new OnMyStop(), TetrisState::NewBlock, new OnMyStop(), TetrisState::Running);
+  // 기존의 클래스를 대체한 부분
+  // 기존의 클래스를 대체한 부분
+  Tetris::setOperation('a', TetrisState::Running, new CustomLeft(), TetrisState::Running, new CollisionIgnoringActionHandler(new CustomRight()), TetrisState::Running);
+  Tetris::setOperation('d', TetrisState::Running, new CustomRight(), TetrisState::Running, new CollisionIgnoringActionHandler(new CustomLeft()), TetrisState::Running);
+  Tetris::setOperation('s', TetrisState::Running, new CustomDown(), TetrisState::Running, new CollisionIgnoringActionHandler(new CustomUp()), TetrisState::Running);
+  Tetris::setOperation('e', TetrisState::Running, new CustomUp(), TetrisState::Running, new CollisionIgnoringActionHandler(new CustomDown()), TetrisState::Running);
+  Tetris::setOperation('w', TetrisState::Running, new CustomClockWise(), TetrisState::Running, new CollisionIgnoringActionHandler(new CustomClockWise()), TetrisState::Running);
+
+  Tetris::setOperation(' ', TetrisState::Running, new CustomStop(), TetrisState::NewBlock, new CustomStop(), TetrisState::Running);
 
   // 새로운 블록 생성 시 myDeleteFullLines 호출
-  Tetris::setOperation('0', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
-  Tetris::setOperation('1', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
-  Tetris::setOperation('2', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
-  Tetris::setOperation('3', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
-  Tetris::setOperation('4', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
-  Tetris::setOperation('5', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
-  Tetris::setOperation('6', TetrisState::NewBlock, new OnMyNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('0', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('1', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('2', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('3', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('4', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('5', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
+  Tetris::setOperation('6', TetrisState::NewBlock, new CustomOnNewBlock(), TetrisState::Running, new OnFinished(), TetrisState::Finished);
   /////////////////////////////////////////////////////////////////////////
 
   Tetris *board = new Tetris(10, 10);
