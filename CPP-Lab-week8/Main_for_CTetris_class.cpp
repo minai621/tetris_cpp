@@ -16,32 +16,28 @@
 
 using namespace std;
 
+
 /********************************************************/
 /**************** Linux System Functions *********************/
 /********************************************************/
 
 char saved_key = 0;
-int tty_raw(int fd);   /* put terminal into a raw mode */
-int tty_reset(int fd); /* restore terminal's mode */
-
+int tty_raw(int fd);	/* put terminal into a raw mode */
+int tty_reset(int fd);	/* restore terminal's mode */
+  
 /* Read 1 character - echo defines echo mode */
-char getch()
-{
+char getch() {
   char ch;
   int n;
-  while (1)
-  {
+  while (1) {
     tty_raw(0);
     n = read(0, &ch, 1);
     tty_reset(0);
     if (n > 0)
       break;
-    else if (n < 0)
-    {
-      if (errno == EINTR)
-      {
-        if (saved_key != 0)
-        {
+    else if (n < 0) {
+      if (errno == EINTR) {
+        if (saved_key != 0) {
           ch = saved_key;
           saved_key = 0;
           break;
@@ -52,20 +48,17 @@ char getch()
   return ch;
 }
 
-void sigint_handler(int signo)
-{
+void sigint_handler(int signo) {
   // cout << "SIGINT received!" << endl;
   // do nothing;
 }
 
-void sigalrm_handler(int signo)
-{
+void sigalrm_handler(int signo) {
   alarm(1);
   saved_key = 's';
 }
 
-void registerInterrupt()
-{
+void registerInterrupt() {
   struct sigaction act, oact;
   act.sa_handler = sigint_handler;
   sigemptyset(&act.sa_mask);
@@ -74,15 +67,13 @@ void registerInterrupt()
 #else
   act.sa_flags = 0;
 #endif
-  if (sigaction(SIGINT, &act, &oact) < 0)
-  {
+  if (sigaction(SIGINT, &act, &oact) < 0) {
     cerr << "sigaction error" << endl;
     exit(1);
   }
 }
 
-void registerAlarm()
-{
+void registerAlarm() {
   struct sigaction act, oact;
   act.sa_handler = sigalrm_handler;
   sigemptyset(&act.sa_mask);
@@ -91,8 +82,7 @@ void registerAlarm()
 #else
   act.sa_flags = 0;
 #endif
-  if (sigaction(SIGALRM, &act, &oact) < 0)
-  {
+  if (sigaction(SIGALRM, &act, &oact) < 0) {
     cerr << "sigaction error" << endl;
     exit(1);
   }
@@ -105,70 +95,49 @@ void registerAlarm()
 #define MAX_BLK_TYPES 7
 #define MAX_BLK_DEGREES 4
 
-int T0D0[] = {10, 10, 10, 10, -1};
-int T0D1[] = {10, 10, 10, 10, -1};
-int T0D2[] = {10, 10, 10, 10, -1};
-int T0D3[] = {10, 10, 10, 10, -1};
+int T0D0[] = { 10, 10, 10, 10, -1 };
+int T0D1[] = { 10, 10, 10, 10, -1 };
+int T0D2[] = { 10, 10, 10, 10, -1 };
+int T0D3[] = { 10, 10, 10, 10, -1 };
 
-int T1D0[] = {0, 20, 0, 20, 20, 20, 0, 0, 0, -1};
-int T1D1[] = {0, 20, 0, 0, 20, 20, 0, 20, 0, -1};
-int T1D2[] = {0, 0, 0, 20, 20, 20, 0, 20, 0, -1};
-int T1D3[] = {0, 20, 0, 20, 20, 0, 0, 20, 0, -1};
+int T1D0[] = { 0, 20, 0, 20, 20, 20, 0, 0, 0, -1 };
+int T1D1[] = { 0, 20, 0, 0, 20, 20, 0, 20, 0, -1 };
+int T1D2[] = { 0, 0, 0, 20, 20, 20, 0, 20, 0, -1 };
+int T1D3[] = { 0, 20, 0, 20, 20, 0, 0, 20, 0, -1 };
 
-int T2D0[] = {30, 0, 0, 30, 30, 30, 0, 0, 0, -1};
-int T2D1[] = {0, 30, 30, 0, 30, 0, 0, 30, 0, -1};
-int T2D2[] = {0, 0, 0, 30, 30, 30, 0, 0, 30, -1};
-int T2D3[] = {0, 30, 0, 0, 30, 0, 30, 30, 0, -1};
+int T2D0[] = { 30, 0, 0, 30, 30, 30, 0, 0, 0, -1 };
+int T2D1[] = { 0, 30, 30, 0, 30, 0, 0, 30, 0, -1 };
+int T2D2[] = { 0, 0, 0, 30, 30, 30, 0, 0, 30, -1 };
+int T2D3[] = { 0, 30, 0, 0, 30, 0, 30, 30, 0, -1 };
 
-int T3D0[] = {0, 0, 40, 40, 40, 40, 0, 0, 0, -1};
-int T3D1[] = {0, 40, 0, 0, 40, 0, 0, 40, 40, -1};
-int T3D2[] = {0, 0, 0, 40, 40, 40, 40, 0, 0, -1};
-int T3D3[] = {40, 40, 0, 0, 40, 0, 0, 40, 0, -1};
+int T3D0[] = { 0, 0, 40, 40, 40, 40, 0, 0, 0, -1 };
+int T3D1[] = { 0, 40, 0, 0, 40, 0, 0, 40, 40, -1 };
+int T3D2[] = { 0, 0, 0, 40, 40, 40, 40, 0, 0, -1 };
+int T3D3[] = { 40, 40, 0, 0, 40, 0, 0, 40, 0, -1 };
 
-int T4D0[] = {0, 50, 0, 50, 50, 0, 50, 0, 0, -1};
-int T4D1[] = {50, 50, 0, 0, 50, 50, 0, 0, 0, -1};
-int T4D2[] = {0, 50, 0, 50, 50, 0, 50, 0, 0, -1};
-int T4D3[] = {50, 50, 0, 0, 50, 50, 0, 0, 0, -1};
+int T4D0[] = { 0, 50, 0, 50, 50, 0, 50, 0, 0, -1 };
+int T4D1[] = { 50, 50, 0, 0, 50, 50, 0, 0, 0, -1 };
+int T4D2[] = { 0, 50, 0, 50, 50, 0, 50, 0, 0, -1 };
+int T4D3[] = { 50, 50, 0, 0, 50, 50, 0, 0, 0, -1 };
 
-int T5D0[] = {0, 60, 0, 0, 60, 60, 0, 0, 60, -1};
-int T5D1[] = {0, 0, 0, 0, 60, 60, 60, 60, 0, -1};
-int T5D2[] = {0, 60, 0, 0, 60, 60, 0, 0, 60, -1};
-int T5D3[] = {0, 0, 0, 0, 60, 60, 60, 60, 0, -1};
+int T5D0[] = { 0, 60, 0, 0, 60, 60, 0, 0, 60, -1 };
+int T5D1[] = { 0, 0, 0, 0, 60, 60, 60, 60, 0, -1 };
+int T5D2[] = { 0, 60, 0, 0, 60, 60, 0, 0, 60, -1 };
+int T5D3[] = { 0, 0, 0, 0, 60, 60, 60, 60, 0, -1 };
 
-int T6D0[] = {0, 0, 0, 0, 70, 70, 70, 70, 0, 0, 0, 0, 0, 0, 0, 0, -1};
-int T6D1[] = {0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, -1};
-int T6D2[] = {0, 0, 0, 0, 70, 70, 70, 70, 0, 0, 0, 0, 0, 0, 0, 0, -1};
-int T6D3[] = {0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, -1};
-
+int T6D0[] = { 0, 0, 0, 0, 70, 70, 70, 70, 0, 0, 0, 0, 0, 0, 0, 0, -1 };
+int T6D1[] = { 0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, -1 };
+int T6D2[] = { 0, 0, 0, 0, 70, 70, 70, 70, 0, 0, 0, 0, 0, 0, 0, 0, -1 };
+int T6D3[] = { 0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, 0, 70, 0, 0, -1 };
+  
 int *setOfColorBlockArrays[] = {
-    T0D0,
-    T0D1,
-    T0D2,
-    T0D3,
-    T1D0,
-    T1D1,
-    T1D2,
-    T1D3,
-    T2D0,
-    T2D1,
-    T2D2,
-    T2D3,
-    T3D0,
-    T3D1,
-    T3D2,
-    T3D3,
-    T4D0,
-    T4D1,
-    T4D2,
-    T4D3,
-    T5D0,
-    T5D1,
-    T5D2,
-    T5D3,
-    T6D0,
-    T6D1,
-    T6D2,
-    T6D3,
+  T0D0, T0D1, T0D2, T0D3,
+  T1D0, T1D1, T1D2, T1D3,
+  T2D0, T2D1, T2D2, T2D3,
+  T3D0, T3D1, T3D2, T3D3,
+  T4D0, T4D1, T4D2, T4D3,
+  T5D0, T5D1, T5D2, T5D3,
+  T6D0, T6D1, T6D2, T6D3,
 };
 
 void drawScreen(Matrix *screen, int wall_depth)
@@ -178,78 +147,67 @@ void drawScreen(Matrix *screen, int wall_depth)
   int dw = wall_depth;
   int **array = screen->get_array();
 
-  for (int y = 0; y < dy - dw + 1; y++)
-  {
-    for (int x = dw - 1; x < dx - dw + 1; x++)
-    {
+  for (int y = 0; y < dy - dw + 1; y++) {
+    for (int x = dw - 1; x < dx - dw + 1; x++) {
       if (array[y][x] == 0)
-        cout << "□ ";
+	      cout << "□ ";
       else if (array[y][x] == 1)
-        cout << "■ ";
+	      cout << "■ ";
       else if (array[y][x] == 10)
-        cout << "◈ ";
+	      cout << "◈ ";
       else if (array[y][x] == 20)
-        cout << "★ ";
+	      cout << "★ ";
       else if (array[y][x] == 30)
-        cout << "● ";
+	      cout << "● ";
       else if (array[y][x] == 40)
-        cout << "◆ ";
+	      cout << "◆ ";
       else if (array[y][x] == 50)
-        cout << "▲ ";
+	      cout << "▲ ";
       else if (array[y][x] == 60)
-        cout << "♣ ";
+	      cout << "♣ ";
       else if (array[y][x] == 70)
-        cout << "♥ ";
+	      cout << "♥ ";
       else
-        cout << "XX ";
+	      cout << "XX ";
     }
     cout << endl;
   }
 }
-
+  
 /**************************************************************/
 /******************** Tetris Main Loop ************************/
 /**************************************************************/
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   char key;
-  // registerAlarm(); // register one-second timer
+  //registerAlarm(); // register one-second timer
   srand((unsigned int)time(NULL)); // init the random number generator
-
+  
   TetrisState state;
   CTetris::init(setOfColorBlockArrays, MAX_BLK_TYPES, MAX_BLK_DEGREES);
   CTetris *board = new CTetris(10, 10);
-  key = (char)('0' + rand() % board->get_numTypes());
+  key = (char) ('0' + rand() % board->get_numTypes());
   board->accept(key);
-  drawScreen(board->get_oScreen(), board->get_wallDepth());
-  cout << endl;
-  drawScreen(board->get_oCScreen(), board->get_wallDepth());
-  cout << endl;
+  drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
+  drawScreen(board->get_oCScreen(), board->get_wallDepth()); cout << endl;
 
-  while ((key = getch()) != 'q')
-  {
+  while ((key = getch()) != 'q') {
     state = board->accept(key);
-    drawScreen(board->get_oScreen(), board->get_wallDepth());
-    cout << endl;
-    drawScreen(board->get_oCScreen(), board->get_wallDepth());
-    cout << endl;
-    if (state == TetrisState::NewBlock)
-    {
-      key = (char)('0' + rand() % board->get_numTypes());
+    drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
+    drawScreen(board->get_oCScreen(), board->get_wallDepth()); cout << endl;
+    if (state == TetrisState::NewBlock) {
+      key = (char) ('0' + rand() % board->get_numTypes());
       state = board->accept(key);
-      drawScreen(board->get_oScreen(), board->get_wallDepth());
-      cout << endl;
-      drawScreen(board->get_oCScreen(), board->get_wallDepth());
-      cout << endl;
-      if (state == TetrisState::Finished)
+      drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
+      drawScreen(board->get_oCScreen(), board->get_wallDepth()); cout << endl;
+      if (state == TetrisState::Finished) 
         break;
     }
   }
 
   delete board;
   CTetris::deinit();
-  cout << "(nAlloc, nFree) = (" << Matrix::get_nAlloc() << ',' << Matrix::get_nFree() << ")" << endl;
+  cout << "(nAlloc, nFree) = (" << Matrix::get_nAlloc() << ',' << Matrix::get_nFree() << ")" << endl;  
   cout << "Program terminated!" << endl;
   return 0;
 }

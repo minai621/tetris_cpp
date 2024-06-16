@@ -13,6 +13,9 @@
 #include "Matrix.h"
 #include "Tetris.h"
 #include "CTetris.h"
+#include "Window.h"
+
+#include <fstream>
 
 using namespace std;
 
@@ -26,7 +29,7 @@ int tty_raw(int fd);	/* put terminal into a raw mode */
 int tty_reset(int fd);	/* restore terminal's mode */
   
 /* Read 1 character - echo defines echo mode */
-char getch() {
+char tty_getch() {
   char ch;
   int n;
   while (1) {
@@ -173,41 +176,185 @@ void drawScreen(Matrix *screen, int wall_depth)
     cout << endl;
   }
 }
-  
+
+
+/**************************************************************/
+/******************** NCurses-related functions *********************/
+/**************************************************************/
+
+void init_screen() {
+  setlocale(LC_ALL, ""); // for printing a box character
+  initscr();         // initialize the curses screen
+  start_color(); // start using colors
+  // init_pair(index, fg color, bg color);
+  init_pair(1, COLOR_WHITE,   COLOR_BLACK);
+  init_pair(2, COLOR_RED,     COLOR_BLACK);
+  init_pair(3, COLOR_GREEN,   COLOR_BLACK);
+  init_pair(4, COLOR_YELLOW,  COLOR_BLACK);
+  init_pair(5, COLOR_BLUE,    COLOR_BLACK);
+  init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+  init_pair(7, COLOR_CYAN,    COLOR_BLACK);
+}
+
+void close_screen() {
+  endwin();
+}
+
+void drawScreen(Matrix *screen, int wall_depth, Window *win) {
+  int dy = screen->get_dy();
+  int dx = screen->get_dx();
+  int dw = wall_depth;
+  int **array = screen->get_array();
+
+  win->dowclear();
+
+  for (int y = 0; y < dy - dw + 1; y++) {
+    for (int x = dw - 1; x < dx - dw + 1; x++) {
+      if (array[y][x] == 0)
+	      win->addStr(y, x - dw + 1, "□");
+      else if (array[y][x] == 1)
+	      win->addStr(y, x - dw + 1, "■");
+      else if (array[y][x] >= 10)
+	      win->addCstr(y, x - dw + 1, "■", array[y][x]/10);
+      else 
+	      win->addStr(y, x - dw + 1, "◈");
+    }
+  }
+
+  win->dowrefresh();
+}
+
 /**************************************************************/
 /******************** Tetris Main Loop ************************/
 /**************************************************************/
 
-int main(int argc, char *argv[]) {
+static ifstream infStream;
+static ofstream outfStream;
+
+char getTetrisKey(TetrisState state, bool fromUser, bool toFile) {
   char key;
-  //registerAlarm(); // register one-second timer
+
+  if (fromUser == true) {
+    if (state == TetrisState::NewBlock)
+      key = (char) ('0' + rand() % MAX_BLK_TYPES);
+    else
+      key = tty_getch();
+  }
+  else { // fromUser == false
+    if (infStream.is_open() == false) {
+      infStream.open("keyseq.txt");
+      if (infStream.fail()) {
+        cout << "keyseq.txt cannot be opened!" << endl;
+        exit(1);
+      }
+    }
+    if (infStream.eof() == true)
+      key = 'q';
+    else
+      infStream.get(key); // why not "infStream >> key" ?
+
+    usleep(100000); // 100 ms
+  }
+
+  if (toFile == true) {
+    if (outfStream.is_open() == false) {
+      outfStream.open("keyseq.txt");
+      if (outfStream.fail()) {
+        cout << "keyseq.txt cannot be opened!" << endl;
+        exit(1);
+      }
+      // outfStream.close(); // truncate the existing file
+      // outfStream.open("keyseq.txt", ios::app);
+    }
+    outfStream << key;
+  }
+
+  return key;
+}
+
+int main(int argc, char *argv[]) {
+
+  string mode_normal = "normal";
+  string mode_record = "record";
+  string mode_replay = "replay";
+  bool fromUser = true;
+  bool toFile = false;
+
+  if (argc != 2) {
+    cout << "usage: " << argv[0] << " [normal/record/replay]" << endl;
+    exit(1);
+  }
+
+  if (mode_normal.compare(argv[1]) == 0) {
+    fromUser = true;
+    toFile = false;
+    cout << "normal mode on!" << endl;
+  }
+  else if (mode_record.compare(argv[1]) == 0) {
+    fromUser = true;
+    toFile = true;
+    cout << "record mode on!" << endl;
+  }
+  else if (mode_replay.compare(argv[1]) == 0) {
+    fromUser = false;
+    toFile = false;
+    cout << "replay mode on!" << endl;
+  }
+  else {
+    cout << "usage: " << argv[0] << " [normal/record/replay]" << endl;
+    exit(1);
+  }
+
+
+  char key;
+  registerAlarm(); // register one-second timer
   srand((unsigned int)time(NULL)); // init the random number generator
-  
+
+  init_screen();
+
+  // newwin(nlines, ncolumns, begin_y, begin_x)
+  Window bttm_win(newwin(3, 60, 12, 0));
+  Window left_win(newwin(12, 30, 0, 0));
+  Window rght_win(newwin(12, 30, 0, 30));
+  bttm_win.printw("123456789012345678901234567890123456789012345678901234567890");
+  bttm_win.printw("Program started!\n");
+
   TetrisState state;
   CTetris::init(setOfColorBlockArrays, MAX_BLK_TYPES, MAX_BLK_DEGREES);
   CTetris *board = new CTetris(10, 10);
-  key = (char) ('0' + rand() % board->get_numTypes());
-  board->accept(key);
-  drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
-  drawScreen(board->get_oCScreen(), board->get_wallDepth()); cout << endl;
+  key = getTetrisKey(TetrisState::NewBlock, fromUser, toFile);
+  state = board->accept(key);
+  drawScreen(board->get_oScreen(), board->get_wallDepth(), &left_win); 
+  drawScreen(board->get_oCScreen(), board->get_wallDepth(), &rght_win); 
 
-  while ((key = getch()) != 'q') {
+  while ((key = getTetrisKey(state, fromUser, toFile)) != 'q') {
     state = board->accept(key);
-    drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
-    drawScreen(board->get_oCScreen(), board->get_wallDepth()); cout << endl;
+    drawScreen(board->get_oScreen(), board->get_wallDepth(), &left_win); 
+    drawScreen(board->get_oCScreen(), board->get_wallDepth(), &rght_win); 
     if (state == TetrisState::NewBlock) {
-      key = (char) ('0' + rand() % board->get_numTypes());
+      key = getTetrisKey(state, fromUser, toFile);
       state = board->accept(key);
-      drawScreen(board->get_oScreen(), board->get_wallDepth()); cout << endl;
-      drawScreen(board->get_oCScreen(), board->get_wallDepth()); cout << endl;
+      drawScreen(board->get_oScreen(), board->get_wallDepth(), &left_win); 
+      drawScreen(board->get_oCScreen(), board->get_wallDepth(), &rght_win); 
       if (state == TetrisState::Finished) 
         break;
     }
   }
 
+  if (infStream.is_open() == true) 
+    infStream.close();
+
+  if (outfStream.is_open() == true) 
+    outfStream.close();
+
+  bttm_win.printw("Program terminated!\n");
+  sleep(5);
+  close_screen();
+
   delete board;
   CTetris::deinit();
   cout << "(nAlloc, nFree) = (" << Matrix::get_nAlloc() << ',' << Matrix::get_nFree() << ")" << endl;  
   cout << "Program terminated!" << endl;
+
   return 0;
 }

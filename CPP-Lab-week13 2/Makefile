@@ -1,7 +1,7 @@
 # Set compiler to use
 CC=g++
-CFLAGS=-g -I. -I/usr/local/opt/ncurses/include -fpermissive
-LDFLAGS_TET=-L/usr/local/opt/ncurses/lib -lncurses
+CFLAGS=-g -I. -fpermissive -lncursesw
+LDFLAGS_TET=
 DEPS_TET=Tetris.h Matrix.h
 OBJS_TET=Main.o CTetris.o Tetris.o Matrix.o Window.o ttymodes.o
 DEBUG=0
